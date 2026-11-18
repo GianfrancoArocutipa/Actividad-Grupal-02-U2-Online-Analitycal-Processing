@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Explorador OLAP de generación eléctrica y huella de carbono en el SEIN Perú con DuckDB-Wasm y Apache Parquet.">
+    <title>Energía Perú · Explorador OLAP con DuckDB-Wasm</title>
+  </head>
+  <body>
+    <header class="masthead">
+      <a class="brand" href="./">Energía Perú <span>OLAP · SEIN</span></a>
+      <a class="source" href="https://github.com/GianfrancoArocutipa/Actividad-Grupal-02-U2-Online-Analitycal-Processing">Ver repositorio ↗</a>
+    </header>
+    <main>
+      <div class="intro">
+        <div>
+          <p class="eyebrow">2024–2025 · Modelo Estrella en Apache Parquet</p>
+          <h1>Un despacho.<br>Múltiples dimensiones.</h1>
+        </div>
+        <p class="lead">Explora 54.000 bloques de despacho eléctrico por tiempo, zona operativa y tecnología de generación. Cada filtro ejecuta consultas SQL vectorizadas en DuckDB-Wasm dentro del navegador.</p>
+      </div>
+      <p id="status" class="status" role="status">Iniciando el motor analítico DuckDB-Wasm… La primera carga instancia WebAssembly.</p>
+      <form id="filters" aria-label="Filtros de análisis OLAP">
+        <fieldset id="controls" disabled>
+          <label>Año
+            <select name="year">
+              <option value="">Todos los años</option>
+              <option>2024</option>
+              <option>2025</option>
+            </select>
+          </label>
+          <label>Zona eléctrica
+            <select name="zone">
+              <option value="">Todas las zonas</option>
+              <option>Norte</option>
+              <option>Centro</option>
+              <option>Sur</option>
+            </select>
+          </label>
+          <label>Tecnología
+            <select name="source_type">
+              <option value="">Todas las tecnologías</option>
+              <option>Hidroeléctrica</option>
+              <option>Solar / Eólica</option>
+              <option>Gas Natural</option>
+            </select>
+          </label>
+          <label>Agrupar por (Drill-down)
+            <select name="dimension">
+              <option value="year">Año</option>
+              <option value="quarter">Trimestre</option>
+              <option value="month" selected>Mes</option>
+              <option value="zone">Zona eléctrica</option>
+              <option value="department">Departamento</option>
+              <option value="source_type">Tecnología</option>
+              <option value="plant_name">Central generadora</option>
+            </select>
+          </label>
+          <button id="reset-filters" type="button" class="secondary">Restablecer</button>
+        </fieldset>
+      </form>
+      <section aria-label="Indicadores globales de la selección" class="metrics">
+        <div><h2>Energía despachada</h2><p id="energy-mwh">—</p></div>
+        <div><h2>Valorización spot</h2><p id="revenue-usd">—</p></div>
+        <div><h2>Margen operativo</h2><p id="margin-usd">—</p></div>
+        <div><h2>Emisiones CO₂</h2><p id="co2-tons">—</p></div>
+      </section>
+      <section class="panel" aria-labelledby="result-heading">
+        <div class="panel-header">
+          <div>
+            <h2 id="result-heading">Energía por mes</h2>
+            <p id="result-caption">Selecciona una dimensión para desglosar la matriz energética.</p>
+          </div>
+          <button id="export" class="secondary" disabled>Descargar CSV</button>
+        </div>
+        <div id="chart" class="chart" aria-label="Gráfico comparativo de energía en MWh"></div>
+        <div class="table-scroll" tabindex="0" aria-label="Resultados por dimensión">
+          <table id="results"><thead></thead><tbody></tbody></table>
+        </div>
+      </section>
+      <section class="panel" aria-labelledby="operations-heading">
+        <div class="panel-header">
+          <div>
+            <h2 id="operations-heading">Operaciones Multidimensionales OLAP</h2>
+            <p>Los filtros de Slice y Dice se aplican dinámicamente a los subtotales jerárquicos, a la matriz pivoteada y al cubo.</p>
+          </div>
+        </div>
+        <div class="tabs" role="group" aria-label="Elegir operación OLAP">
+          <button id="rollup-tab" aria-pressed="true" disabled>Roll-up · Año y trimestre</button>
+          <button id="pivot-tab" aria-pressed="false" disabled>Pivot · Zona y tecnología (MWh)</button>
+          <button id="cube-tab" aria-pressed="false" disabled>Cube · Zona × Tecnología</button>
+        </div>
+        <div class="table-scroll" tabindex="0" aria-label="Resultados de la operación OLAP">
+          <table id="operation"><thead></thead><tbody></tbody></table>
+        </div>
+      </section>
+      <details class="sql-panel">
+        <summary>Ver las consultas SQL ejecutadas en DuckDB-Wasm</summary>
+        <h3>Análisis por dimensión (Slice, Dice &amp; Drill-down)</h3>
+        <pre id="detail-sql"></pre>
+        <h3 id="operation-sql-heading">Roll-up</h3>
+        <pre id="operation-sql"></pre>
+      </details>
+      <section class="guide" aria-labelledby="guide-heading">
+        <h2 id="guide-heading">Operaciones OLAP implementadas</h2>
+        <div>
+          <p><strong>Slice &amp; Dice:</strong> Filtra un corte unidimensional (ej. Año 2025) o combina múltiples dimensiones (Zona Sur + Solar / Eólica) sobre los archivos Parquet.</p>
+          <p><strong>Drill-down &amp; Roll-up:</strong> Navega desde el resumen anual hasta trimestre, mes, departamento o central, y calcula subtotales jerárquicos con <code>GROUP BY ROLLUP</code>.</p>
+          <p><strong>Pivot &amp; Cube:</strong> Cruza zonas eléctricas contra tecnologías mediante <code>FILTER (WHERE ...)</code> y calcula todas las combinaciones multidimensionales con <code>GROUP BY CUBE</code>.</p>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <p>Motor analítico en el navegador con <strong>DuckDB-Wasm</strong> y <strong>Apache Parquet</strong> (100% libre de AWS). Desplegado con GitHub Actions y GitHub Pages.</p>
+    </footer>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

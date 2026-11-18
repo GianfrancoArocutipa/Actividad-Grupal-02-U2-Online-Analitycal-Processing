@@ -1,0 +1,405 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #0d1520;
+  color: #e5eef5;
+  font: 400 16px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+a {
+  color: #38bdf8;
+  text-decoration: none;
+}
+
+button,
+select {
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled,
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.masthead,
+main,
+footer {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-inline: 24px;
+}
+
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-block: 20px;
+  border-bottom: 1px solid #1e2d40;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: #f8fafc;
+  letter-spacing: -0.03em;
+}
+
+.brand span {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  margin-left: 0.4rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.16);
+  color: #34d399;
+}
+
+.source {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.intro {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 3.5rem;
+  align-items: end;
+  padding-block: 36px 26px;
+}
+
+.eyebrow {
+  color: #34d399;
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+h1 {
+  font-weight: 800;
+  font-size: clamp(2.2rem, 5vw, 3.8rem);
+  line-height: 1.06;
+  letter-spacing: -0.04em;
+  margin: 0;
+}
+
+.lead {
+  color: #9cb1c9;
+  margin: 0 0 0.35rem;
+  max-width: 31rem;
+  font-size: 1rem;
+}
+
+.status {
+  min-height: 1.5em;
+  font-size: 0.86rem;
+  color: #34d399;
+  margin: 0 0 18px;
+}
+
+.status.error {
+  color: #fecdd3;
+  background: #4c0519;
+  border: 1px solid #fb7185;
+  padding: 14px;
+  border-radius: 8px;
+}
+
+form {
+  border: 1px solid #1e2d40;
+  padding: 18px;
+  background: #131e2e;
+  border-radius: 10px;
+}
+
+fieldset {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  gap: 14px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  align-items: end;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #9cb1c9;
+}
+
+select {
+  width: 100%;
+  background: #0d1520;
+  border: 1px solid #2b3f57;
+  border-radius: 6px;
+  padding: 10px 10px;
+  color: #e5eef5;
+  min-height: 44px;
+}
+
+.secondary {
+  padding: 9px 15px;
+  border-radius: 6px;
+  border: 1px solid #2b3f57;
+  background: #18263a;
+  color: #e5eef5;
+  min-height: 44px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.secondary:hover {
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin: 22px 0;
+  border: 1px solid #1f3a52;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #102538 0%, #132c33 100%);
+  color: white;
+}
+
+.metrics > div {
+  padding: 20px;
+}
+
+.metrics > div + div {
+  border-left: 1px solid #23455c;
+}
+
+.metrics h2 {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #9cb1c9;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metrics p {
+  margin: 0;
+  font-weight: 700;
+  font-size: clamp(1.15rem, 2.2vw, 1.7rem);
+  font-variant-numeric: tabular-nums;
+  color: #34d399;
+}
+
+.panel {
+  border: 1px solid #1e2d40;
+  border-radius: 10px;
+  background: #131e2e;
+  margin: 22px 0;
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 22px 24px 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+h2 {
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.panel-header h2 {
+  margin: 0;
+}
+
+.panel-header p {
+  margin: 5px 0 0;
+  color: #9cb1c9;
+  font-size: 0.86rem;
+}
+
+.chart {
+  padding: 6px 24px 22px;
+}
+
+.chart-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 160px) 1fr minmax(105px, auto);
+  gap: 12px;
+  align-items: center;
+  margin: 7px 0;
+  font-size: 0.8rem;
+}
+
+.chart-label {
+  overflow-wrap: anywhere;
+  color: #cbd5e1;
+}
+
+.chart-track {
+  background: #0d1520;
+  border-radius: 4px;
+  height: 14px;
+  overflow: hidden;
+}
+
+.chart-fill {
+  background: linear-gradient(90deg, #10b981, #38bdf8);
+  height: 100%;
+  min-width: 2px;
+  border-radius: 4px;
+}
+
+.chart-value {
+  text-align: right;
+  color: #9cb1c9;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+th,
+td {
+  padding: 11px 24px;
+  text-align: right;
+}
+
+th:first-child,
+td:first-child {
+  text-align: left;
+}
+
+thead {
+  background: #0f1826;
+  color: #9cb1c9;
+}
+
+tbody tr {
+  border-top: 1px solid #1e2d40;
+}
+
+tbody tr:hover {
+  background: rgba(56, 189, 248, 0.04);
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 24px 18px;
+  flex-wrap: wrap;
+}
+
+.tabs button {
+  background: #0d1520;
+  border: 1px solid #2b3f57;
+  color: #9cb1c9;
+  border-radius: 6px;
+  padding: 9px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.tabs button[aria-pressed="true"] {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: #10b981;
+  color: #34d399;
+}
+
+.sql-panel {
+  border: 1px solid #1e2d40;
+  border-radius: 10px;
+  padding: 18px 24px;
+  background: #131e2e;
+}
+
+summary {
+  font-weight: 700;
+  cursor: pointer;
+}
+
+pre {
+  overflow: auto;
+  padding: 16px;
+  background: #090e17;
+  color: #7dd3fc;
+  font-size: 0.82rem;
+  border-radius: 6px;
+  border: 1px solid #1e2d40;
+}
+
+h3 {
+  font-size: 0.9rem;
+  color: #9cb1c9;
+}
+
+.guide {
+  margin-block: 32px;
+}
+
+.guide > div {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.guide p {
+  font-size: 0.88rem;
+  color: #9cb1c9;
+  margin: 0;
+}
+
+.guide strong {
+  color: #34d399;
+}
+
+footer {
+  color: #9cb1c9;
+  font-size: 0.84rem;
+  border-top: 1px solid #1e2d40;
+  padding-block: 24px;
+}
+
+@media (max-width: 850px) {
+  fieldset {
+    grid-template-columns: 1fr 1fr;
+  }
+  .intro {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+  .metrics > div:nth-child(3) {
+    border-left: 0;
+  }
+  .metrics > div:nth-child(n + 3) {
+    border-top: 1px solid #23455c;
+  }
+  .guide > div {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,7 @@
+.venv/
+node_modules/
+dist/
+public/data/
+__pycache__/
+*.pyc
+test-results/
