@@ -1,27 +1,27 @@
 ---
-title: "Construimos una solución OLAP de Matriz Energética con DuckDB-Wasm y Apache Parquet en el navegador"
+title: "Building a Zero-AWS Power Grid OLAP Explorer in the Browser with DuckDB-Wasm and Apache Parquet"
 published: true
-description: "Un esquema estrella de 54.000 bloques de despacho eléctrico en el Perú, operaciones ROLLUP, PIVOT y CUBE ejecutadas en WebAssembly y despliegue automatizado con GitHub Actions y Pages."
+description: "A 54,000-row Star Schema of Peruvian electricity dispatch, vectorised ROLLUP, PIVOT, and CUBE queries running in WebAssembly, and automated CI/CD deployment to GitHub Pages."
 tags: duckdb, sql, dataengineering, javascript
 ---
 
-Analizar la matriz eléctrica de un país suele implicar preguntas multidimensionales: «¿Cuántos megavatios-hora aportaron las centrales solares y eólicas en la zona Sur durante 2025?», «¿cómo evoluciona el margen operativo por trimestre?» o «¿cuántas toneladas de $\text{CO}_2$ evitamos al sustituir generación térmica por hidroeléctrica?». Para responder estas preguntas sin depender de servidores costosos ni de servicios de AWS, construimos **Energía Perú OLAP**, un explorador analítico que ejecuta consultas vectorizadas dentro del navegador con **DuckDB-Wasm** y **Apache Parquet**.
+Analyzing a national power grid inevitably leads to multi-dimensional questions: *"How many megawatt-hours did solar and wind power plants inject into the Southern grid during 2025?"*, *"How does operating margin evolve across quarters?"*, or *"How many tons of $\text{CO}_2$ emissions are offset when hydro generation replaces natural gas?"*. To answer these questions at millisecond latency without provisioning expensive cloud clusters or relying on AWS services, we built **Energía Perú OLAP**, a browser-native analytical workbench powered by **DuckDB-Wasm** and **Apache Parquet**.
 
-El proyecto modela **54.000 bloques de despacho eléctrico** de 2024 y 2025 inspirados en el Sistema Eléctrico Interconectado Nacional (**SEIN**), distribuidos entre doce centrales generadoras, tres tecnologías y seis departamentos del Perú.
+The project models **54,000 electricity dispatch blocks** across 2024 and 2025 inspired by Peru's National Interconnected Electrical System (**SEIN**), spanning twelve power plants, three generation technologies, and six departments.
 
-[Abrir la aplicación interactiva](https://gianfrancoarocutipa.github.io/Actividad-Grupal-02-U2-Online-Analitycal-Processing/) · [Explorar el repositorio público](https://github.com/GianfrancoArocutipa/Actividad-Grupal-02-U2-Online-Analitycal-Processing) · [Ver el workflow de despliegue](https://github.com/GianfrancoArocutipa/Actividad-Grupal-02-U2-Online-Analitycal-Processing/actions/workflows/pages.yml)
+[Launch Live OLAP Application](https://gianfrancoarocutipa.github.io/Actividad-Grupal-02-U2-Online-Analitycal-Processing/) · [Explore Public GitHub Repository](https://github.com/GianfrancoArocutipa/Actividad-Grupal-02-U2-Online-Analitycal-Processing) · [View CI/CD Deployment Workflow](https://github.com/GianfrancoArocutipa/Actividad-Grupal-02-U2-Online-Analitycal-Processing/actions/workflows/pages.yml)
 
 ---
 
-## 1. Diseño del esquema estrella y granularidad
+## 1. Designing the Star Schema and Grain
 
-Cada registro de la tabla de hechos (`fact_dispatch`) representa un bloque de inyección de energía de una central en una zona y fecha determinadas. Almacena cuatro métricas aditivas: energía despachada (`energy_mwh`), valorización en el mercado spot (`revenue_usd`), costo operativo (`op_cost_usd`) y emisiones de carbono (`co2_tons`).
+Every row in our central fact table (`fact_dispatch`) represents a single power injection block from a generation plant into a grid zone on a given date. It stores four additive measures: dispatched energy (`energy_mwh`), spot market valuation (`revenue_usd`), operating cost (`op_cost_usd`), and carbon emissions (`co2_tons`).
 
-Alrededor de la tabla de hechos definimos tres dimensiones desnormalizadas para navegar por sus jerarquías:
+Surrounding the fact table, we defined three denormalized dimension tables to support hierarchical navigation:
 
-- **`dim_date`** (731 días): fecha, año (`year`), trimestre (`quarter`) y etiqueta mensual (`month_label`).
-- **`dim_plant`** (12 centrales): tecnología (`Hidroeléctrica`, `Solar / Eólica`, `Gas Natural`) y central (`C.H. Mantaro`, `C.H. Cerro del Águila`, `C.S. Rubí`, `C.E. Wayra`, `C.T. Kallpa`, entre otras).
-- **`dim_zone`** (6 departamentos): zona operativa del SEIN (`Norte`, `Centro`, `Sur`) y departamento (`Piura`, `La Libertad`, `Lima`, `Junín`, `Arequipa`, `Moquegua`).
+- **`dim_date`** (731 days): calendar date, `year`, `quarter`, and `month_label` (`2024-01` through `2025-12`).
+- **`dim_plant`** (12 power plants): generation technology (`Hidroeléctrica`, `Solar / Eólica`, `Gas Natural`) and facility name (`C.H. Mantaro`, `C.H. Cerro del Águila`, `C.S. Rubí`, `C.E. Wayra`, `C.T. Kallpa`, among others).
+- **`dim_zone`** (6 departments): SEIN grid region (`Norte`, `Centro`, `Sur`) and department (`Piura`, `La Libertad`, `Lima`, `Junín`, `Arequipa`, `Moquegua`).
 
 ```text
                     dim_date
@@ -29,33 +29,33 @@ Alrededor de la tabla de hechos definimos tres dimensiones desnormalizadas para 
 dim_plant ───── fact_dispatch ───── dim_zone
 ```
 
-En total, el dataset consolida **11.470.432 MWh** despachados, **USD 578,07 millones** en valorización spot y **1.550.133,85 toneladas de $\text{CO}_2$**.
+Across the 54,000 dispatch blocks, the Star Schema consolidates **11,470,432 MWh** of generated electricity, **USD 578.07 million** in spot market valuation, and **1,550,133.85 tons of $\text{CO}_2$**.
 
 ---
 
-## 2. De DuckDB en Python a DuckDB-Wasm en el navegador
+## 2. From Native DuckDB in Python to DuckDB-Wasm in the Browser
 
-El flujo de datos combina dos entornos de ejecución de DuckDB:
+Our architecture pairs two execution environments of the DuckDB columnar engine:
 
-1. **Generación y compresión columnar en CI (`scripts/build_data.py`)**: Python utiliza una semilla determinista (`SEED = 202602`) para poblar las cuatro tablas en DuckDB, valida la integridad referencial y exporta cada tabla a archivos `.parquet` comprimidos con `ZSTD`.
-2. **Motor analítico en el cliente (`src/main.js`)**: Cuando un usuario abre la aplicación en GitHub Pages, el navegador instancia `@duckdb/duckdb-wasm` dentro de un **Web Worker**, registra los cuatro archivos Parquet en el sistema de archivos virtual y ejecuta `public/schema.sql` para exponer la vista analítica `dispatch`.
+1. **Deterministic Generation & Parquet Compression in CI ([`scripts/build_data.py`](https://github.com/GianfrancoArocutipa/Actividad-Grupal-02-U2-Online-Analitycal-Processing/blob/main/scripts/build_data.py))**: Python uses a fixed seed (`SEED = 202602`) to populate the Star Schema inside DuckDB, validates primary/foreign key integrity, and exports each table into `ZSTD`-compressed `.parquet` files.
+2. **In-Browser Vectorized Execution ([`src/main.js`](https://github.com/GianfrancoArocutipa/Actividad-Grupal-02-U2-Online-Analitycal-Processing/blob/main/src/main.js))**: When a visitor loads the static app on GitHub Pages, the browser boots `@duckdb/duckdb-wasm` inside a **Web Worker**, registers the four Parquet files in DuckDB's virtual file system, and runs [`public/schema.sql`](https://github.com/GianfrancoArocutipa/Actividad-Grupal-02-U2-Online-Analitycal-Processing/blob/main/public/schema.sql) to expose the joined `dispatch` analytical view.
 
 ```text
 Python + DuckDB ──► Apache Parquet (ZSTD)
                             │
                             ▼
-GitHub Pages ──► DuckDB-Wasm (Web Worker) ──► Consultas OLAP en milisegundos
+GitHub Pages ──► DuckDB-Wasm (Web Worker) ──► Millisecond OLAP Queries
 ```
 
-Al alojar los binarios `.wasm` y los workers directamente en el bundle de Vite, la aplicación no depende de CDNs externos ni de backends en la nube.
+Because the WebAssembly binaries (`.wasm`) and worker scripts are bundled directly by Vite during the build, the application runs with zero backend servers and zero external CDN failure points.
 
 ---
 
-## 3. Slice, Dice y Drill-down sobre la matriz energética
+## 3. Slice, Dice, and Drill-Down on the Energy Matrix
 
-Seleccionar el año `2025` aplica un corte unidimensional sobre el cubo (**Slice**). Al combinarlo con la zona `Sur` y la tecnología `Solar / Eólica`, acotamos una subcelda multidimensional (**Dice**).
+Selecting the year `2025` applies a single-dimension filter across the cube (**Slice**). Combining `2025` with the `Sur` grid zone and `Solar / Eólica` technology isolates a multi-dimensional sub-cube (**Dice**).
 
-Cambiar el selector **Agrupar por** permite hacer **Drill-down** desde el nivel anual hasta trimestre, mes, zona eléctrica, departamento o central generadora manteniendo activos los filtros:
+Switching the **Group by (Drill-down)** selector allows users to navigate from annual totals down to quarter, month, grid zone, department, technology, or individual power plant while keeping all active filters applied:
 
 ```sql
 select
@@ -73,17 +73,17 @@ group by month_label
 order by month_label;
 ```
 
-El panel desplegable de la interfaz muestra en tiempo real las sentencias SQL exactas que DuckDB-Wasm acaba de ejecutar.
+An expandable SQL inspector panel in the UI displays the exact SQL statements executed by DuckDB-Wasm on every interaction.
 
 ---
 
-## 4. Operaciones multidimensionales: `ROLLUP`, `PIVOT` y `CUBE`
+## 4. Multi-Dimensional Operations: `ROLLUP`, `PIVOT`, and `CUBE`
 
-Además del desglose por dimensión, la aplicación incluye tres pestañas dedicadas a operaciones OLAP avanzadas que responden a los mismos filtros activos:
+Beyond single-dimension breakdowns, the workbench provides three dedicated tabs for advanced OLAP aggregations that react dynamically to the active Slice & Dice filters:
 
-### Jerarquía temporal con `GROUP BY ROLLUP`
+### Hierarchical Time Aggregation with `GROUP BY ROLLUP`
 
-Calcula en una sola pasada los trimestres, el subtotal de cada año y el total general del SEIN utilizando la función `GROUPING()` para etiquetar cada nivel de agregación:
+Computes quarterly totals, annual subtotals, and the overall SEIN grand total in a single pass, using `GROUPING()` to label each aggregation level:
 
 ```sql
 select
@@ -99,25 +99,25 @@ group by rollup(year, quarter)
 order by grouping(year), year, grouping(quarter), quarter;
 ```
 
-### Matriz cruzada con `FILTER` (Pivot) y `GROUP BY CUBE`
+### Cross-Tabulation with `FILTER` (Pivot) and `GROUP BY CUBE`
 
-La pestaña **Pivot** transforma las tecnologías en columnas (`Hidroeléctrica`, `Solar / Eólica` y `Gas Natural`) para comparar su aporte en MWh dentro de cada zona eléctrica, mientras que la pestaña **Cube** ejecuta `group by cube(zone, source_type)` para obtener todas las combinaciones cruzadas y marginales entre geografía y fuente de energía.
-
----
-
-## 5. Validación automatizada y despliegue en GitHub Pages
-
-Antes de publicar la aplicación, el pipeline verifica tanto la lógica SQL como la conciliación contable del modelo estrella:
-
-1. **Pruebas unitarias del generador SQL (`npm run test:queries`)**: Verifica con `node:assert` las 7 dimensiones, las cláusulas `WHERE`, el rechazo de parámetros no permitidos y la generación de `ROLLUP`, `PIVOT` y `CUBE`.
-2. **Conciliación contra DuckDB (`python scripts/build_data.py`)**: Comprueba que el join del modelo estrella preserve los 54.000 bloques sin métricas negativas, ejecuta los casos de `scripts/query-cases.mjs` y verifica que la suma de cada dimensión y el total del `ROLLUP` coincidan exactamente con los **11.470.432 MWh** de la tabla de hechos.
-3. **CI/CD en GitHub Actions (`.github/workflows/pages.yml`)**: En cada push a `main`, instala Python 3.11 y Node.js 22, ejecuta las pruebas, regenera los archivos Parquet, compila el bundle estático con Vite y lo despliega en **GitHub Pages** mediante `actions/deploy-pages@v4`.
+The **Pivot** tab pivots generation technologies into columns (`Hidroeléctrica`, `Solar / Eólica`, and `Gas Natural`) using conditional aggregation (`SUM(energy_mwh) FILTER (WHERE ...)`) to compare MWh contribution across grid zones. Meanwhile, the **Cube** tab executes `GROUP BY CUBE(zone, source_type)` to compute every two-dimensional combination and marginal subtotal between geography and energy source.
 
 ---
 
-## 6. Reproducir el proyecto localmente
+## 5. Automated Validation and CI/CD Deployment to GitHub Pages
 
-Clona el repositorio y ejecuta el generador y el servidor de desarrollo con Python 3.11+ y Node.js 22+:
+Before deploying any changes, our pipeline validates both the SQL query builder and the accounting reconciliation of the Star Schema:
+
+1. **Query Builder Unit Tests (`npm run test:queries`)**: Verifies all 7 dimensions, `WHERE` clause construction, strict allow-list validation against SQL injection, and `ROLLUP`, `PIVOT`, and `CUBE` query generation via [`scripts/test-queries.mjs`](https://github.com/GianfrancoArocutipa/Actividad-Grupal-02-U2-Online-Analitycal-Processing/blob/main/scripts/test-queries.mjs).
+2. **Star Schema Reconciliation (`python scripts/build_data.py`)**: Asserts that joining `fact_dispatch` with the three dimension tables preserves all 54,000 rows without negative measures, executes every query case from [`scripts/query-cases.mjs`](https://github.com/GianfrancoArocutipa/Actividad-Grupal-02-U2-Online-Analitycal-Processing/blob/main/scripts/query-cases.mjs), and verifies that every dimensional breakdown and `ROLLUP` grand total reconciles with the exact **11,470,432.00 MWh** fact sum.
+3. **GitHub Actions CI/CD ([`.github/workflows/pages.yml`](https://github.com/GianfrancoArocutipa/Actividad-Grupal-02-U2-Online-Analitycal-Processing/blob/main/.github/workflows/pages.yml))**: On every push to `main`, GitHub Actions provisions Python 3.11 and Node.js 22, runs the test suite, builds the Parquet files, bundles the production assets with Vite, and deploys `dist/` to **GitHub Pages** via `actions/deploy-pages@v4`.
+
+---
+
+## 6. Reproduce the Project Locally
+
+Clone the repository and run the data generator and local development server using Python 3.11+ and Node.js 22+:
 
 ```bash
 git clone https://github.com/GianfrancoArocutipa/Actividad-Grupal-02-U2-Online-Analitycal-Processing.git
@@ -130,4 +130,4 @@ npm run test:queries
 npm run dev
 ```
 
-En Windows con PowerShell puedes usar `.\.venv\Scripts\python` tal como se detalla en el `README.md`. Abre la URL local que muestra Vite para explorar los 54.000 bloques de despacho, alternar entre `Roll-up`, `Pivot` y `Cube`, y exportar cualquier selección a CSV.
+PowerShell commands for Windows are also included in the `README.md`. Open the local URL printed by Vite to slice and dice the 54,000 power dispatch blocks, switch between `Roll-up`, `Pivot`, and `Cube`, and export any view to CSV.
